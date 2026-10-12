@@ -1,9 +1,12 @@
+import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
-# ==========================================
-# YÊU CẦU 1: Tạo DataFrame chứa 10 sinh viên
-# ==========================================
+# Tiêu đề ứng dụng
+st.title("QUẢN LÝ ĐIỂM SINH VIÊN")
+
+# Dữ liệu 10 sinh viên
 data = {
     'Họ và tên': ['An', 'Bình', 'Chi', 'Dũng', 'Hà', 'Lan', 'Minh', 'Nam', 'Phúc', 'Trang'],
     'Điểm chuyên cần': [8.0, 9.0, 7.0, 9.5, 7.5, 6.0, 9.0, 7.0, 7.5, 9.0],
@@ -12,28 +15,11 @@ data = {
 }
 
 df = pd.DataFrame(data)
-print("--- YÊU CẦU 1: BẢNG DỮ LIỆU BAN ĐẦU ---")
-display(df)
 
+# Tính điểm tổng kết
+df['Tong_ket'] = (0.2 * df['Điểm chuyên cần'] + 0.3 * df['Điểm giữa kỳ'] + 0.5 * df['Điểm cuối kỳ']).round(2)
 
-# ==========================================
-# YÊU CẦU 2: Tính điểm tổng kết
-# Công thức: 20% Chuyên cần + 30% Giữa kỳ + 50% Cuối kỳ
-# ==========================================
-df['Tong_ket'] = (
-    0.2 * df['Điểm chuyên cần'] +
-    0.3 * df['Điểm giữa kỳ'] +
-    0.5 * df['Điểm cuối kỳ']
-)
-
-print("\n--- YÊU CẦU 2: BẢNG DỮ LIỆU SAU KHI TÍNH ĐIỂM TỔNG KẾT ---")
-display(df)
-
-
-# ==========================================
-# YÊU CẦU 3: Xếp loại sinh viên
-# >= 8.5: Giỏi | 7.0-<8.5: Khá | 5.0-<7.0: Trung bình | < 5.0: Yếu
-# ==========================================
+# Xếp loại
 def xep_loai(diem):
     if diem >= 8.5:
         return 'Giỏi'
@@ -46,45 +32,64 @@ def xep_loai(diem):
 
 df['Xep_loai'] = df['Tong_ket'].apply(xep_loai)
 
-print("\n--- YÊU CẦU 3: BẢNG DỮ LIỆU SAU KHI XẾP LOẠI ---")
-display(df)
+# Hiển thị bảng điểm
+st.subheader("📋 Bảng điểm chi tiết của 10 sinh viên")
+st.dataframe(df, use_container_width=True)
 
-
-# ==========================================
-# YÊU CẦU 4: Thống kê cơ bản
-# ==========================================
-# Điểm tổng kết trung bình của lớp
+# Thống kê cơ bản
+st.subheader("📊 Thống kê chung của lớp")
 dtb_lop = df['Tong_ket'].mean()
-
-# Sinh viên có điểm tổng kết cao nhất
 max_sv = df.loc[df['Tong_ket'].idxmax()]
-
-# Sinh viên có điểm tổng kết thấp nhất
 min_sv = df.loc[df['Tong_ket'].idxmin()]
-
-# Số sinh viên đạt (điểm tổng kết >= 5.0)
 so_sv_dat = (df['Tong_ket'] >= 5.0).sum()
 
-print("\n--- YÊU CẦU 4: KẾT QUẢ THỐNG KÊ ---")
-print(f"- Điểm tổng kết trung bình của lớp: {dtb_lop:.2f}")
-print(f"- Sinh viên có điểm cao nhất: {max_sv['Họ và tên']} ({max_sv['Tong_ket']})")
-print(f"- Sinh viên có điểm thấp nhất: {min_sv['Họ và tên']} ({min_sv['Tong_ket']})")
-print(f"- Số sinh viên đạt (>= 5.0): {so_sv_dat}")
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(label="Điểm tổng kết trung bình của lớp", value=f"{dtb_lop:.2f}")
+    st.metric(label="Số sinh viên đạt (>= 5.0)", value=so_sv_dat)
 
+with col2:
+    st.metric(label="SV điểm cao nhất", value=f"{max_sv['Họ và tên']} ({max_sv['Tong_ket']})")
+    st.metric(label="SV điểm thấp nhất", value=f"{min_sv['Họ và tên']} ({min_sv['Tong_ket']})")
 
-# ==========================================
-# YÊU CẦU 5: Trực quan hóa dữ liệu (Matplotlib)
-# ==========================================
-plt.figure(figsize=(10, 5))
-plt.barh(df['Họ và tên'], df['Tong_ket'], color='skyblue')
-plt.xlabel('Điểm Tổng Kết')
-plt.ylabel('Họ và Tên Sinh Viên')
-plt.title('BIỂU ĐỒ THỂ HIỆN ĐIỂM TỔNG KẾT CỦA 10 SINH VIÊN')
-plt.xlim(0, 10)
+st.markdown("---")
 
-# Hiển thị giá trị điểm trên từng cột ngang
-for index, value in enumerate(df['Tong_ket']):
-    plt.text(value + 0.1, index, f"{value:.2f}", va='center')
+# Danh sách chọn sinh viên
+st.subheader("🔍 Tra cứu thông tin sinh viên")
+selected_name = st.selectbox("Chọn tên sinh viên cần xem:", df['Họ và tên'].tolist())
+selected_student = df[df['Họ và tên'] == selected_name].iloc[0]
 
-plt.gca().invert_yaxis() # Đảo ngược trục y để sinh viên đầu tiên ở trên cùng
-plt.show()
+scol1, scol2, scol3, scol4, scol5 = st.columns(5)
+scol1.metric("Chuyên cần", selected_student['Điểm chuyên cần'])
+scol2.metric("Giữa kỳ", selected_student['Điểm giữa kỳ'])
+scol3.metric("Cuối kỳ", selected_student['Điểm cuối kỳ'])
+scol4.metric("Tổng kết", selected_student['Tong_ket'])
+scol5.metric("Xếp loại", selected_student['Xep_loai'])
+
+st.markdown("---")
+
+# Biểu đồ cột điểm tổng kết
+st.subheader("📈 Biểu đồ điểm tổng kết của 10 sinh viên")
+fig, ax = plt.subplots(figsize=(10, 4))
+bars = ax.barh(df['Họ và tên'], df['Tong_ket'], color='skyblue', edgecolor='navy')
+
+ax.set_xlabel('Điểm Tổng Kết')
+ax.set_ylabel('Họ và Tên Sinh Viên')
+ax.set_title('BIỂU ĐỒ THỂ HIỆN ĐIỂM TỔNG KẾT CỦA 10 SINH VIÊN')
+ax.set_xlim(0, 10)
+
+for bar in bars:
+    width = bar.get_width()
+    ax.text(width + 0.1, bar.get_y() + bar.get_height()/2, f"{width:.2f}", va='center')
+
+ax.invert_yaxis()
+st.pyplot(fig)
+
+# Thông tin người tạo ở cuối trang
+st.markdown("---")
+st.markdown(
+    "<p style='text-align: center; color: gray; font-size: small;'>"
+    "Người tạo ứng dụng: Nguyễn Viết - MSSV: 12345678"
+    "</p>", 
+    unsafe_allow_html=True
+)
